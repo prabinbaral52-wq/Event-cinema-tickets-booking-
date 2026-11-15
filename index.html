@@ -1,0 +1,2766 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover"
+    />
+    <title>Event Cinemas — Gole Complex, Lalbandi-7 | Online Ticket Booking</title>
+    <meta
+      name="description"
+      content="Customer online ticket booking portal for Event Cinemas, Gole Complex, Lalbandi-7, Sarlahi. Book seats and pay via Fonepay."
+    />
+    <meta property="og:title" content="Event Cinemas — Gole Complex, Lalbandi-7" />
+    <meta
+      property="og:description"
+      content="Customer online ticket booking portal for Event Cinemas, Gole Complex, Lalbandi-7, Sarlahi."
+    />
+    <meta property="og:type" content="website" />
+
+    <!-- Firebase App, Realtime Database & Analytics Compat SDK v9 -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
+
+    <!-- HTML2Canvas for 300 DPI Gallery Ticket Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+      :root {
+        --bg: #09090e;
+        --surface: #13131e;
+        --surface-2: #1a1a28;
+        --surface-3: #222234;
+        --border: rgba(255, 255, 255, 0.09);
+        --border-strong: rgba(255, 255, 255, 0.16);
+        --text: #f8fafc;
+        --text-muted: #94a3b8;
+        --text-soft: #64748b;
+        --accent: #e50914;
+        --accent-hover: #f6121d;
+        --accent-glow: rgba(229, 9, 20, 0.68);
+        --seat-avail: #1e293b;
+        --seat-avail-border: #334155;
+        --seat-reserved: #f59e0b;
+        --seat-booked: #7f1d1d;
+        --success: #10b981;
+        --header-h: 64px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --radius-xl: 20px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      html,
+      body {
+        background-color: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.45;
+        min-height: 100%;
+        overflow-x: hidden;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .tabular {
+        font-variant-numeric: tabular-nums;
+      }
+
+      button {
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+        border: none;
+        background: none;
+      }
+
+      button:focus-visible,
+      input:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      /* ================= HEADER ================= */
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 60;
+        min-height: var(--header-h);
+        background: rgba(9, 9, 14, 0.94);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .header-inner {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .brand-lockup {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .brand-logo-svg {
+        width: 44px;
+        height: 44px;
+        flex-shrink: 0;
+      }
+
+      .brand-text {
+        min-width: 0;
+      }
+
+      .brand-title {
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #ffffff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .brand-sub {
+        font-size: 11.5px;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .header-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+        border: 1px solid transparent;
+      }
+
+      .status-pill.open {
+        background: rgba(16, 185, 129, 0.14);
+        border-color: rgba(16, 185, 129, 0.35);
+        color: #34d399;
+      }
+
+      .status-pill.closed {
+        background: rgba(229, 9, 20, 0.14);
+        border-color: rgba(229, 9, 20, 0.4);
+        color: #f87171;
+      }
+
+      .demo-toggle-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        background: var(--surface-2);
+        border: 1px solid var(--border-strong);
+        color: #e2e8f0;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+        transition: background 0.15s ease, border-color 0.15s ease;
+      }
+
+      .demo-toggle-btn:hover {
+        background: var(--surface-3);
+        border-color: rgba(255, 255, 255, 0.28);
+      }
+
+      .demo-toggle-btn[data-mode="FORCE_OPEN"] {
+        border-color: rgba(16, 185, 129, 0.5);
+        color: #6ee7b7;
+      }
+
+      .demo-toggle-btn[data-mode="FORCE_CLOSED"] {
+        border-color: rgba(229, 9, 20, 0.55);
+        color: #fca5a5;
+      }
+
+      @media (max-width: 600px) {
+        .header-inner {
+          padding: 8px 12px;
+          gap: 8px;
+        }
+        .brand-logo-svg {
+          width: 38px;
+          height: 38px;
+        }
+        .brand-title {
+          font-size: 14px;
+        }
+        .brand-sub {
+          font-size: 10.5px;
+        }
+        .header-controls {
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 4px;
+        }
+        .status-pill {
+          padding: 3px 8px;
+          font-size: 10px;
+        }
+        .demo-toggle-btn {
+          min-height: 28px;
+          padding: 3px 8px;
+          font-size: 10px;
+        }
+      }
+
+      /* ================= MAIN SHELL ================= */
+      .main-container {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 18px 16px 110px;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      @media (min-width: 960px) {
+        .main-container {
+          padding: 24px 24px 110px;
+          grid-template-columns: 350px 1fr;
+          align-items: start;
+          gap: 24px;
+        }
+      }
+
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 16px;
+      }
+
+      .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .section-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: -0.01em;
+      }
+
+      .section-meta {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      /* ================= MOVIE CATALOG ================= */
+      .movie-list {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .movie-card {
+        display: grid;
+        grid-template-columns: 92px 1fr;
+        gap: 14px;
+        padding: 12px;
+        border-radius: var(--radius-md);
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        transition: border-color 0.16s ease, background 0.16s ease;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .movie-card.active {
+        border-color: var(--accent);
+        background: linear-gradient(
+          145deg,
+          rgba(229, 9, 20, 0.12),
+          rgba(26, 26, 40, 0.98)
+        );
+      }
+
+      .poster-wrap {
+        width: 92px;
+        height: 132px;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #0d101b;
+        border: 1px solid var(--border);
+        position: relative;
+        flex-shrink: 0;
+      }
+
+      .poster-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .poster-fallback {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+        text-align: center;
+        background: radial-gradient(
+            circle at 50% 25%,
+            rgba(229, 9, 20, 0.35),
+            transparent 68%
+          ),
+          linear-gradient(170deg, #161829 0%, #09090e 100%);
+      }
+
+      .poster-fallback-title {
+        margin-top: 6px;
+        font-size: 10px;
+        font-weight: 700;
+        color: #f8fafc;
+        line-height: 1.25;
+      }
+
+      .movie-info {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-width: 0;
+      }
+
+      .movie-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #ffffff;
+        line-height: 1.25;
+        margin-bottom: 4px;
+      }
+
+      .movie-subline {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-bottom: 10px;
+      }
+
+      .movie-price {
+        font-size: 13px;
+        font-weight: 700;
+        color: #f8fafc;
+        margin-bottom: 8px;
+      }
+
+      .showtimes-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .showtime-btn {
+        min-height: 36px;
+        padding: 6px 11px;
+        border-radius: 8px;
+        background: #0f111c;
+        border: 1px solid var(--border-strong);
+        color: #e2e8f0;
+        font-size: 12px;
+        font-weight: 600;
+        transition: all 0.15s ease;
+      }
+
+      .showtime-btn:hover {
+        border-color: rgba(255, 255, 255, 0.35);
+      }
+
+      .showtime-btn.active {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(229, 9, 20, 0.35);
+      }
+
+      /* ================= SEAT MATRIX ================= */
+      .seat-panel {
+        overflow: hidden;
+      }
+
+      .active-show-banner {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding-bottom: 14px;
+        margin-bottom: 16px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .active-show-title {
+        font-size: 17px;
+        font-weight: 800;
+        color: #ffffff;
+      }
+
+      .active-show-meta {
+        font-size: 12.5px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      .availability-stats {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .clear-btn {
+        min-height: 34px;
+        padding: 5px 10px;
+        border-radius: 8px;
+        background: var(--surface-2);
+        border: 1px solid var(--border-strong);
+        font-size: 12px;
+        font-weight: 600;
+        color: #f8fafc;
+      }
+
+      .screen-stage {
+        margin: 6px auto 18px;
+        max-width: 560px;
+        text-align: center;
+      }
+
+      .screen-arc {
+        height: 18px;
+        border-top: 4px solid #e2e8f0;
+        border-radius: 50% / 16px 16px 0 0;
+        box-shadow: 0 -10px 26px rgba(248, 250, 252, 0.24);
+        margin-bottom: 6px;
+      }
+
+      .screen-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.22em;
+        color: var(--text-muted);
+        text-transform: uppercase;
+      }
+
+      .legend-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        margin-bottom: 16px;
+        font-size: 12px;
+        color: #cbd5e1;
+      }
+
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .legend-swatch {
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        display: inline-block;
+      }
+
+      .swatch-avail {
+        background: var(--seat-avail);
+        border: 1px solid var(--seat-avail-border);
+      }
+
+      .swatch-reserved {
+        background: var(--seat-reserved);
+      }
+
+      .swatch-booked {
+        background: var(--seat-booked);
+      }
+
+      .swatch-selected {
+        background: var(--accent);
+        box-shadow: 0 0 8px var(--accent-glow);
+      }
+
+      .swipe-hint {
+        display: block;
+        text-align: center;
+        font-size: 11px;
+        color: var(--text-soft);
+        margin-bottom: 8px;
+      }
+
+      @media (min-width: 780px) {
+        .swipe-hint {
+          display: none;
+        }
+      }
+
+      .seat-scroll-wrap {
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 8px;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .seat-grid-inner {
+        min-width: 650px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        margin: 0 auto;
+      }
+
+      .seat-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+      }
+
+      .row-label {
+        width: 22px;
+        text-align: center;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--text-muted);
+        flex-shrink: 0;
+      }
+
+      .aisle-gap {
+        width: 14px;
+        flex-shrink: 0;
+      }
+
+      .seat-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px 6px 4px 4px;
+        font-size: 10px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: transform 0.12s ease, box-shadow 0.14s ease,
+          background-color 0.14s ease;
+        user-select: none;
+      }
+
+      @media (min-width: 1080px) {
+        .seat-grid-inner {
+          min-width: 0;
+        }
+        .seat-btn {
+          width: 30px;
+          height: 29px;
+          font-size: 10.5px;
+        }
+      }
+
+      .seat-btn.available {
+        background: var(--seat-avail);
+        color: #ffffff;
+        border: 1px solid var(--seat-avail-border);
+      }
+
+      .seat-btn.available:hover {
+        border-color: #94a3b8;
+        transform: translateY(-1px);
+      }
+
+      .seat-btn.reserved {
+        background: var(--seat-reserved);
+        color: #09090e;
+        border: 1px solid #d97706;
+        cursor: not-allowed;
+      }
+
+      .seat-btn.booked {
+        background: var(--seat-booked);
+        color: #fecaca;
+        border: 1px solid #991b1b;
+        cursor: not-allowed;
+        opacity: 0.9;
+      }
+
+      .seat-btn.selected {
+        background: var(--accent);
+        color: #ffffff;
+        border: 1px solid #ff4b55;
+        box-shadow: 0 0 12px var(--accent-glow);
+        transform: scale(1.06);
+      }
+
+      /* ================= STICKY BOTTOM BAR ================= */
+      .sticky-bar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 45;
+        background: rgba(19, 19, 30, 0.96);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-top: 1px solid var(--border-strong);
+        padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+        transform: translateY(0);
+        transition: transform 0.2s ease, opacity 0.2s ease;
+      }
+
+      .sticky-bar.hidden-bar {
+        transform: translateY(110%);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .sticky-inner {
+        max-width: 1180px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .sticky-summary {
+        min-width: 0;
+      }
+
+      .sticky-seats {
+        font-size: 13px;
+        font-weight: 700;
+        color: #ffffff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .sticky-sub {
+        font-size: 11.5px;
+        color: var(--text-muted);
+      }
+
+      .book-cta-btn {
+        min-height: 44px;
+        padding: 10px 18px;
+        border-radius: 10px;
+        background: var(--accent);
+        color: #ffffff;
+        font-size: 14px;
+        font-weight: 700;
+        white-space: nowrap;
+        flex-shrink: 0;
+        box-shadow: 0 6px 20px rgba(229, 9, 20, 0.4);
+        transition: background 0.15s ease, transform 0.12s ease;
+      }
+
+      .book-cta-btn:hover {
+        background: var(--accent-hover);
+      }
+
+      .book-cta-btn:active {
+        transform: scale(0.98);
+      }
+
+      /* ================= TIME-GATED CLOSED OVERLAY ================= */
+      .closed-overlay {
+        position: fixed;
+        top: var(--header-h);
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 50;
+        background: rgba(9, 9, 14, 0.96);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .closed-overlay.is-hidden {
+        display: none;
+      }
+
+      .closed-card {
+        width: 100%;
+        max-width: 480px;
+        background: var(--surface);
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-xl);
+        padding: 28px 24px;
+        text-align: center;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+      }
+
+      .closed-icon-box {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 16px;
+        border-radius: 14px;
+        background: rgba(229, 9, 20, 0.14);
+        border: 1px solid rgba(229, 9, 20, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #f87171;
+      }
+
+      .closed-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: #ffffff;
+        margin-bottom: 10px;
+      }
+
+      .closed-copy {
+        font-size: 14px;
+        color: #cbd5e1;
+        line-height: 1.6;
+        margin-bottom: 20px;
+      }
+
+      .countdown-box {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-bottom: 14px;
+      }
+
+      .countdown-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+      }
+
+      .countdown-clock {
+        font-size: 28px;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: 0.04em;
+      }
+
+      .closed-hours-note {
+        font-size: 12px;
+        color: var(--text-soft);
+      }
+
+      /* ================= MODALS ================= */
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        background: rgba(5, 5, 9, 0.82);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        padding: 0;
+        overflow-y: auto;
+      }
+
+      @media (min-width: 600px) {
+        .modal-backdrop {
+          align-items: center;
+          padding: 20px;
+        }
+      }
+
+      .modal-backdrop.is-hidden {
+        display: none;
+      }
+
+      .modal-card {
+        width: 100%;
+        max-width: 480px;
+        background: var(--surface);
+        border: 1px solid var(--border-strong);
+        border-radius: 20px 20px 0 0;
+        padding: 20px 18px calc(22px + env(safe-area-inset-bottom));
+        max-height: 92vh;
+        overflow-y: auto;
+      }
+
+      @media (min-width: 600px) {
+        .modal-card {
+          border-radius: 20px;
+          padding: 24px;
+        }
+      }
+
+      .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .modal-title {
+        font-size: 18px;
+        font-weight: 800;
+        color: #ffffff;
+      }
+
+      .modal-close {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        color: #cbd5e1;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .summary-box {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px 14px;
+        margin-bottom: 16px;
+        font-size: 13px;
+      }
+
+      .summary-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 4px 0;
+      }
+
+      .summary-row strong {
+        color: #ffffff;
+        text-align: right;
+      }
+
+      .field-label {
+        display: block;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #cbd5e1;
+        margin-bottom: 6px;
+      }
+
+      .text-input {
+        width: 100%;
+        min-height: 46px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        background: var(--bg);
+        border: 1px solid var(--border-strong);
+        color: #ffffff;
+        font-size: 15px;
+        margin-bottom: 12px;
+      }
+
+      .payment-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+
+      .pay-tab-btn {
+        min-height: 46px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: var(--surface-2);
+        border: 1px solid var(--border-strong);
+        font-size: 13px;
+        font-weight: 700;
+        color: #cbd5e1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      .pay-tab-btn.active {
+        background: rgba(229, 9, 20, 0.14);
+        border-color: var(--accent);
+        color: #ffffff;
+      }
+
+      .fonepay-box {
+        background: #ffffff;
+        color: #0f172a;
+        border-radius: 14px;
+        padding: 14px;
+        text-align: center;
+        margin-bottom: 14px;
+      }
+
+      .fonepay-brand {
+        display: inline-block;
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        color: #c8102e;
+        margin-bottom: 4px;
+      }
+
+      .fonepay-merchant {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 10px;
+      }
+
+      .fonepay-qr-canvas {
+        display: block;
+        margin: 0 auto 8px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+      }
+
+      .fonepay-note {
+        font-size: 11.5px;
+        color: #475569;
+        line-height: 1.4;
+      }
+
+      .cash-box {
+        background: var(--surface-2);
+        border: 1px solid var(--border-strong);
+        border-radius: 12px;
+        padding: 14px;
+        font-size: 13px;
+        color: #cbd5e1;
+        margin-bottom: 14px;
+      }
+
+      .inline-error {
+        font-size: 12.5px;
+        color: #f87171;
+        background: rgba(229, 9, 20, 0.12);
+        border: 1px solid rgba(229, 9, 20, 0.35);
+        border-radius: 8px;
+        padding: 8px 12px;
+        margin-bottom: 12px;
+      }
+
+      .inline-error.is-hidden {
+        display: none;
+      }
+
+      .primary-submit-btn {
+        width: 100%;
+        min-height: 48px;
+        border-radius: 12px;
+        background: var(--accent);
+        color: #ffffff;
+        font-size: 15px;
+        font-weight: 800;
+        box-shadow: 0 8px 24px rgba(229, 9, 20, 0.38);
+      }
+
+      .primary-submit-btn:disabled {
+        opacity: 0.65;
+        cursor: wait;
+      }
+
+      /* ================= PRINTABLE WHITE CINEMA PASS ================= */
+      .ticket-pass-sheet {
+        background: #ffffff;
+        color: #0f172a;
+        border-radius: 16px;
+        padding: 20px 18px;
+        margin-bottom: 14px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+      }
+
+      .ticket-letterhead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding-bottom: 12px;
+        border-bottom: 2px dashed #cbd5e1;
+        margin-bottom: 14px;
+      }
+
+      .ticket-brand-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .ticket-venue-name {
+        font-size: 15px;
+        font-weight: 900;
+        color: #0b1e54;
+        letter-spacing: -0.01em;
+      }
+
+      .ticket-venue-addr {
+        font-size: 11px;
+        color: #475569;
+        font-weight: 600;
+      }
+
+      .paid-stamp {
+        padding: 4px 10px;
+        border: 2px solid #059669;
+        border-radius: 6px;
+        color: #059669;
+        font-size: 11.5px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        transform: rotate(-4deg);
+        flex-shrink: 0;
+      }
+
+      .ticket-movie-block {
+        margin-bottom: 12px;
+      }
+
+      .ticket-movie-title {
+        font-size: 18px;
+        font-weight: 900;
+        color: #0f172a;
+        line-height: 1.25;
+      }
+
+      .ticket-show-meta {
+        font-size: 12.5px;
+        color: #334155;
+        font-weight: 600;
+        margin-top: 3px;
+      }
+
+      .ticket-details-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 10px 12px;
+        margin-bottom: 12px;
+      }
+
+      .td-label {
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+      }
+
+      .td-val {
+        font-size: 13px;
+        font-weight: 800;
+        color: #0f172a;
+        margin-top: 2px;
+        word-break: break-word;
+      }
+
+      .bill-table {
+        border-top: 1px solid #e2e8f0;
+        border-bottom: 2px dashed #cbd5e1;
+        padding: 10px 0;
+        margin-bottom: 14px;
+        font-size: 12.5px;
+      }
+
+      .bill-line {
+        display: flex;
+        justify-content: space-between;
+        padding: 3px 0;
+        color: #334155;
+      }
+
+      .bill-total {
+        display: flex;
+        justify-content: space-between;
+        padding-top: 6px;
+        margin-top: 4px;
+        border-top: 1px solid #e2e8f0;
+        font-size: 14.5px;
+        font-weight: 900;
+        color: #0f172a;
+      }
+
+      .ticket-qr-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+
+      .gate-qr-canvas {
+        display: block;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #ffffff;
+        margin-bottom: 6px;
+      }
+
+      .gate-qr-caption {
+        font-size: 11px;
+        font-weight: 700;
+        color: #334155;
+      }
+
+      .save-gallery-btn {
+        width: 100%;
+        min-height: 48px;
+        border-radius: 12px;
+        background: #059669;
+        color: #ffffff;
+        font-size: 14.5px;
+        font-weight: 800;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .save-gallery-btn:hover {
+        background: #047857;
+      }
+
+      .secondary-action-btn {
+        width: 100%;
+        min-height: 42px;
+        border-radius: 10px;
+        background: var(--surface-2);
+        border: 1px solid var(--border-strong);
+        color: #e2e8f0;
+        font-size: 13.5px;
+        font-weight: 700;
+      }
+
+      .save-feedback {
+        text-align: center;
+        font-size: 12px;
+        color: #34d399;
+        margin-bottom: 8px;
+        min-height: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ================= HEADER ================= -->
+    <header class="site-header">
+      <div class="header-inner">
+        <div class="brand-lockup">
+          <!-- Embedded Circular SVG Vector Logo: EC Clapperboard + EVENT CINEMAS + LALBANDI-7 -->
+          <svg
+            class="brand-logo-svg"
+            viewBox="0 0 120 120"
+            role="img"
+            aria-label="Event Cinemas Lalbandi-7 Logo"
+          >
+            <defs>
+              <path id="topArcHeader" d="M 21,60 A 39,39 0 1,1 99,60" />
+              <path id="botArcHeader" d="M 18,64 A 42,42 0 0,0 102,64" />
+            </defs>
+            <circle cx="60" cy="60" r="57" fill="#ffffff" stroke="#0b1e54" stroke-width="4" />
+            <circle cx="60" cy="60" r="31" fill="none" stroke="#0b1e54" stroke-width="2" />
+            <text
+              fill="#0b1e54"
+              font-size="11.5"
+              font-weight="900"
+              letter-spacing="1.2"
+              font-family="Arial, sans-serif"
+            >
+              <textPath href="#topArcHeader" startOffset="50%" text-anchor="middle">
+                EVENT CINEMAS
+              </textPath>
+            </text>
+            <text
+              fill="#0b1e54"
+              font-size="10.2"
+              font-weight="900"
+              letter-spacing="1.1"
+              font-family="Arial, sans-serif"
+            >
+              <textPath href="#botArcHeader" startOffset="50%" text-anchor="middle">
+                LALBANDI-7
+              </textPath>
+            </text>
+            <!-- Side stars -->
+            <polygon points="15,57 17,61 21,61 18,64 19,68 15,65 11,68 12,64 9,61 13,61" fill="#e50914" />
+            <polygon points="105,57 107,61 111,61 108,64 109,68 105,65 101,68 102,64 99,61 103,61" fill="#e50914" />
+            <!-- Clapperboard icon -->
+            <g transform="translate(38,37)">
+              <rect x="2" y="18" width="40" height="26" rx="3" fill="#0b1e54" />
+              <g transform="rotate(-14 4 14)">
+                <rect x="2" y="4" width="40" height="8" rx="1.5" fill="#0b1e54" />
+                <polygon points="8,4 14,4 10,12 4,12" fill="#ffffff" />
+                <polygon points="20,4 26,4 22,12 16,12" fill="#ffffff" />
+                <polygon points="32,4 38,4 34,12 28,12" fill="#ffffff" />
+              </g>
+              <rect x="2" y="13" width="40" height="5" fill="#e50914" />
+              <text
+                x="22"
+                y="37"
+                text-anchor="middle"
+                fill="#ffffff"
+                font-size="17"
+                font-weight="900"
+                font-family="Arial, sans-serif"
+              >
+                EC
+              </text>
+            </g>
+          </svg>
+
+          <div class="brand-text">
+            <div class="brand-title">Event Cinemas</div>
+            <div class="brand-sub">Gole Complex, Lalbandi-7, Sarlahi</div>
+          </div>
+        </div>
+
+        <div class="header-controls">
+          <div id="statusPill" class="status-pill open">COUNTER OPEN (Until 3 PM)</div>
+          <button
+            id="demoOverrideBtn"
+            type="button"
+            class="demo-toggle-btn"
+            data-mode="AUTO"
+            title="Cycle booking counter mode for presentation"
+          >
+            Mode: AUTO
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ================= MAIN PORTAL ================= -->
+    <main class="main-container">
+      <!-- Left / Top: Movie Catalog Synced from Admin -->
+      <section class="panel" aria-label="Now Showing Movies">
+        <div class="section-head">
+          <h1 class="section-title">Now Showing</h1>
+          <span id="catalogSyncNote" class="section-meta">Gole Complex</span>
+        </div>
+        <div id="movieList" class="movie-list"></div>
+      </section>
+
+      <!-- Right / Main: 190-Seat Interactive Matrix -->
+      <section class="panel seat-panel" aria-label="Seat Selection">
+        <div class="active-show-banner">
+          <div>
+            <div id="activeMovieHeading" class="active-show-title">Loading Movie...</div>
+            <div id="activeShowSub" class="active-show-meta">Select showtime</div>
+          </div>
+          <div class="availability-stats">
+            <span id="availableCounter" class="mono">190 / 190 Free</span>
+            <button id="clearSeatsBtn" type="button" class="clear-btn" style="display: none">
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <div class="screen-stage">
+          <div class="screen-arc"></div>
+          <div class="screen-label">CINEMA SCREEN THIS WAY</div>
+        </div>
+
+        <div class="legend-row" aria-label="Seat status legend">
+          <span class="legend-item">
+            <span class="legend-swatch swatch-avail"></span> Available
+          </span>
+          <span class="legend-item">
+            <span class="legend-swatch swatch-reserved"></span> Reserved
+          </span>
+          <span class="legend-item">
+            <span class="legend-swatch swatch-booked"></span> Booked
+          </span>
+          <span class="legend-item">
+            <span class="legend-swatch swatch-selected"></span> Selected
+          </span>
+        </div>
+
+        <div class="swipe-hint">← Swipe horizontally to view all 19 seats per row →</div>
+
+        <div class="seat-scroll-wrap">
+          <div id="seatGrid" class="seat-grid-inner"></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ================= STICKY BOTTOM BAR ================= -->
+    <div id="stickyBar" class="sticky-bar hidden-bar">
+      <div class="sticky-inner">
+        <div class="sticky-summary">
+          <div id="stickySeatsText" class="sticky-seats">0 Seats Selected</div>
+          <div id="stickyShowText" class="sticky-sub">Select seats to continue</div>
+        </div>
+        <button id="openCheckoutBtn" type="button" class="book-cta-btn tabular">
+          Book 0 Seats • Rs. 0 →
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= TIME-GATED CLOSED OVERLAY ================= -->
+    <div id="closedOverlay" class="closed-overlay is-hidden" role="dialog" aria-modal="true">
+      <div class="closed-card">
+        <div class="closed-icon-box" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="12" cy="12" r="9"></circle>
+            <polyline points="12 7 12 12 15.5 14"></polyline>
+          </svg>
+        </div>
+        <h2 class="closed-title">Online Counter Closed</h2>
+        <p class="closed-copy">
+          Online advance booking is closed for today. Reopens at 12:00 AM.
+          Remaining evening tickets available at Gole Complex Box Office.
+        </p>
+        <div class="countdown-box">
+          <div class="countdown-label">Reopens at 12:00 AM In</div>
+          <div id="reopenCountdown" class="countdown-clock mono">00:00:00</div>
+        </div>
+        <div id="closedLocalTime" class="closed-hours-note mono">
+          Active online window: 12:00 AM – 3:00 PM daily
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= CHECKOUT MODAL ================= -->
+    <div id="checkoutModal" class="modal-backdrop is-hidden" role="dialog" aria-modal="true">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 class="modal-title">Complete Booking</h2>
+          <button id="closeCheckoutBtn" type="button" class="modal-close" aria-label="Close">
+            ×
+          </button>
+        </div>
+
+        <div class="summary-box">
+          <div class="summary-row">
+            <span>Movie</span>
+            <strong id="chkMovie">—</strong>
+          </div>
+          <div class="summary-row">
+            <span>Showtime</span>
+            <strong id="chkTime">—</strong>
+          </div>
+          <div class="summary-row">
+            <span>Seats</span>
+            <strong id="chkSeats" class="mono">—</strong>
+          </div>
+          <div class="summary-row">
+            <span>Total Payable</span>
+            <strong id="chkTotal" class="mono" style="color: #f87171">Rs. 0</strong>
+          </div>
+        </div>
+
+        <label class="field-label" for="customerPhoneInput">Mobile Phone Number</label>
+        <input
+          id="customerPhoneInput"
+          type="tel"
+          inputmode="numeric"
+          autocomplete="tel"
+          class="text-input mono"
+          placeholder="98XXXXXXXX"
+          maxlength="15"
+        />
+
+        <div class="field-label">Payment Method</div>
+        <div class="payment-tabs">
+          <button
+            id="payTabFonepay"
+            type="button"
+            class="pay-tab-btn active"
+            data-method="FONEPAY"
+          >
+            Fonepay QR
+          </button>
+          <button
+            id="payTabCash"
+            type="button"
+            class="pay-tab-btn"
+            data-method="CASH"
+          >
+            Cash at Counter
+          </button>
+        </div>
+
+        <div id="fonepayPanel" class="fonepay-box">
+          <div class="fonepay-brand">fonepay</div>
+          <div class="fonepay-merchant">Event Cinemas • Gole Complex, Lalbandi-7</div>
+          <canvas
+            id="fonepayQrCanvas"
+            class="fonepay-qr-canvas"
+            width="164"
+            height="164"
+          ></canvas>
+          <div id="fonepayAmountNote" class="fonepay-note">
+            Scan with eSewa, Khalti, or Mobile Banking to pay Rs. 0, then tap Confirm &amp; Pay.
+          </div>
+        </div>
+
+        <div id="cashPanel" class="cash-box" style="display: none">
+          Reserve seats now and pay <strong id="cashAmountNote" class="mono">Rs. 0</strong> in
+          cash at Gole Complex Box Office at least 20 minutes before showtime.
+        </div>
+
+        <div id="checkoutError" class="inline-error is-hidden"></div>
+
+        <button id="confirmPayBtn" type="button" class="primary-submit-btn">
+          Confirm &amp; Pay
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= ITEMIZED BILL & PASS MODAL ================= -->
+    <div id="ticketModal" class="modal-backdrop is-hidden" role="dialog" aria-modal="true">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 class="modal-title">Digital Cinema Pass</h2>
+          <button id="closeTicketBtn" type="button" class="modal-close" aria-label="Close">
+            ×
+          </button>
+        </div>
+
+        <div id="ticketPassCapture" class="ticket-pass-sheet">
+          <div class="ticket-letterhead">
+            <div class="ticket-brand-row">
+              <svg width="42" height="42" viewBox="0 0 120 120" aria-hidden="true">
+                <defs>
+                  <path id="topArcPass" d="M 21,60 A 39,39 0 1,1 99,60" />
+                  <path id="botArcPass" d="M 18,64 A 42,42 0 0,0 102,64" />
+                </defs>
+                <circle cx="60" cy="60" r="57" fill="#ffffff" stroke="#0b1e54" stroke-width="4" />
+                <circle cx="60" cy="60" r="31" fill="none" stroke="#0b1e54" stroke-width="2" />
+                <text fill="#0b1e54" font-size="11.5" font-weight="900" letter-spacing="1.2" font-family="Arial, sans-serif">
+                  <textPath href="#topArcPass" startOffset="50%" text-anchor="middle">EVENT CINEMAS</textPath>
+                </text>
+                <text fill="#0b1e54" font-size="10.2" font-weight="900" letter-spacing="1.1" font-family="Arial, sans-serif">
+                  <textPath href="#botArcPass" startOffset="50%" text-anchor="middle">LALBANDI-7</textPath>
+                </text>
+                <g transform="translate(38,37)">
+                  <rect x="2" y="18" width="40" height="26" rx="3" fill="#0b1e54" />
+                  <rect x="2" y="6" width="40" height="8" rx="1.5" fill="#0b1e54" />
+                  <rect x="2" y="13" width="40" height="5" fill="#e50914" />
+                  <text x="22" y="37" text-anchor="middle" fill="#ffffff" font-size="17" font-weight="900" font-family="Arial, sans-serif">EC</text>
+                </g>
+              </svg>
+              <div>
+                <div class="ticket-venue-name">EVENT CINEMAS</div>
+                <div class="ticket-venue-addr">Gole Complex, Lalbandi-7, Sarlahi</div>
+              </div>
+            </div>
+            <div id="passPaidStamp" class="paid-stamp">PAID</div>
+          </div>
+
+          <div class="ticket-movie-block">
+            <div id="passMovieTitle" class="ticket-movie-title">—</div>
+            <div id="passShowtime" class="ticket-show-meta">—</div>
+          </div>
+
+          <div class="ticket-details-grid">
+            <div>
+              <div class="td-label">Ticket ID</div>
+              <div id="passTicketId" class="td-val mono">—</div>
+            </div>
+            <div>
+              <div class="td-label">Customer Phone</div>
+              <div id="passPhone" class="td-val mono">—</div>
+            </div>
+            <div style="grid-column: span 2">
+              <div class="td-label">Confirmed Seats</div>
+              <div id="passSeats" class="td-val mono">—</div>
+            </div>
+          </div>
+
+          <div class="bill-table">
+            <div class="bill-line">
+              <span id="passBillTicketLabel">Tickets (0 × Rs. 250)</span>
+              <span id="passBillSubtotal" class="mono">Rs. 0</span>
+            </div>
+            <div class="bill-line">
+              <span>Service Charge</span>
+              <span class="mono">Rs. 0</span>
+            </div>
+            <div class="bill-total">
+              <span>Total Paid</span>
+              <span id="passBillTotal" class="mono">Rs. 0</span>
+            </div>
+          </div>
+
+          <div class="ticket-qr-section">
+            <canvas
+              id="gateQrCanvas"
+              class="gate-qr-canvas"
+              width="156"
+              height="156"
+            ></canvas>
+            <div class="gate-qr-caption">Scan at Event Cinemas Auditorium Gate</div>
+          </div>
+        </div>
+
+        <div id="saveFeedback" class="save-feedback"></div>
+
+        <button id="saveGalleryBtn" type="button" class="save-gallery-btn">
+          📥 Save Ticket to Gallery (Photo)
+        </button>
+        <button id="bookMoreBtn" type="button" class="secondary-action-btn">
+          Done &amp; Return to Seats
+        </button>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        // =========================================================================
+        // 1. FIREBASE CONFIGURATION (EVENT-CINEMA-TICKET)
+        // =========================================================================
+        const firebaseConfig = {
+          apiKey: "AIzaSyAMY63jHY8YfWidX_fwJHbu_j0NgpRwoCE",
+          authDomain: "event-cinema-ticket.firebaseapp.com",
+          databaseURL: "https://event-cinema-ticket-default-rtdb.firebaseio.com",
+          projectId: "event-cinema-ticket",
+          storageBucket: "event-cinema-ticket.firebasestorage.app",
+          messagingSenderId: "79304425831",
+          appId: "1:79304425831:web:4bb53c018eb68ef1322fc2",
+          measurementId: "G-L2E7XLKWKM",
+        };
+
+        let app = null;
+        let db = null;
+        let analytics = null;
+        let firebaseReady = false;
+        const isPlaceholderConfig =
+          !firebaseConfig.apiKey ||
+          firebaseConfig.apiKey.includes("YOUR_FIREBASE") ||
+          !firebaseConfig.databaseURL ||
+          firebaseConfig.databaseURL.includes("YOUR_PROJECT_ID");
+
+        try {
+          if (typeof firebase !== "undefined" && !isPlaceholderConfig) {
+            app = !firebase.apps.length
+              ? firebase.initializeApp(firebaseConfig)
+              : firebase.app();
+            db = firebase.database();
+            if (typeof firebase.analytics === "function") {
+              try {
+                analytics = firebase.analytics();
+              } catch (analyticsErr) {
+                console.warn("Firebase Analytics skipped:", analyticsErr);
+              }
+            }
+            firebaseReady = true;
+          }
+        } catch (err) {
+          console.warn("Firebase initialization fallback active:", err);
+          db = null;
+          firebaseReady = false;
+        }
+
+        // =========================================================================
+        // 2. CONSTANTS, FALLBACK CATALOG & LOCAL REALTIME SYNC FALLBACK
+        // =========================================================================
+        const DEFAULT_PRICE_NPR = 250;
+        const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
+        const SEATS_PER_ROW = 19; // 10 * 19 = 190 seats total
+
+        const FALLBACK_DEFAULT_MOVIES = [
+          {
+            id: "default-show-1",
+            title: "Event Cinemas Special Feature",
+            subtitle: "Hall 1 · Gole Complex · Standard 2D",
+            price: DEFAULT_PRICE_NPR,
+            posterUrl: "",
+            showtimes: ["12:00 PM", "03:00 PM", "06:00 PM"],
+          },
+        ];
+
+        const LOCAL_BOOKINGS_KEY = "ec_gole_ticket_bookings_v1";
+        const LOCAL_HOLDS_KEY = "ec_gole_seat_holds_v1";
+        const CLIENT_SESSION_ID =
+          "cust-" + Math.random().toString(36).slice(2, 10);
+        const bc =
+          typeof BroadcastChannel !== "undefined"
+            ? new BroadcastChannel("ec_gole_realtime_sync")
+            : null;
+
+        // =========================================================================
+        // 3. APPLICATION STATE
+        // =========================================================================
+        let demoMode = "AUTO"; // "AUTO" | "FORCE_OPEN" | "FORCE_CLOSED"
+        let movies = FALLBACK_DEFAULT_MOVIES.slice();
+        let activeMovieId = movies[0].id;
+        let activeShowtime = movies[0].showtimes[0];
+
+        // Map key: `${movieId}__${time}` -> Set of seat IDs
+        let bookedSeatsByShow = {};
+        // Map key: `${movieId}__${time}` -> Object { seatId: { clientId, expiresAt } }
+        let holdsByShow = {};
+        let selectedSeats = [];
+        let paymentMethod = "FONEPAY"; // "FONEPAY" | "CASH"
+        let lastIssuedTicket = null;
+        let inCheckoutHoldActive = false;
+
+        // =========================================================================
+        // 4. DOM REFERENCES
+        // =========================================================================
+        const statusPill = document.getElementById("statusPill");
+        const demoOverrideBtn = document.getElementById("demoOverrideBtn");
+        const closedOverlay = document.getElementById("closedOverlay");
+        const reopenCountdown = document.getElementById("reopenCountdown");
+        const closedLocalTime = document.getElementById("closedLocalTime");
+        const catalogSyncNote = document.getElementById("catalogSyncNote");
+        const movieListEl = document.getElementById("movieList");
+        const activeMovieHeading = document.getElementById("activeMovieHeading");
+        const activeShowSub = document.getElementById("activeShowSub");
+        const availableCounter = document.getElementById("availableCounter");
+        const clearSeatsBtn = document.getElementById("clearSeatsBtn");
+        const seatGridEl = document.getElementById("seatGrid");
+        const stickyBar = document.getElementById("stickyBar");
+        const stickySeatsText = document.getElementById("stickySeatsText");
+        const stickyShowText = document.getElementById("stickyShowText");
+        const openCheckoutBtn = document.getElementById("openCheckoutBtn");
+
+        const checkoutModal = document.getElementById("checkoutModal");
+        const closeCheckoutBtn = document.getElementById("closeCheckoutBtn");
+        const chkMovie = document.getElementById("chkMovie");
+        const chkTime = document.getElementById("chkTime");
+        const chkSeats = document.getElementById("chkSeats");
+        const chkTotal = document.getElementById("chkTotal");
+        const customerPhoneInput = document.getElementById("customerPhoneInput");
+        const payTabFonepay = document.getElementById("payTabFonepay");
+        const payTabCash = document.getElementById("payTabCash");
+        const fonepayPanel = document.getElementById("fonepayPanel");
+        const cashPanel = document.getElementById("cashPanel");
+        const fonepayQrCanvas = document.getElementById("fonepayQrCanvas");
+        const fonepayAmountNote = document.getElementById("fonepayAmountNote");
+        const cashAmountNote = document.getElementById("cashAmountNote");
+        const checkoutError = document.getElementById("checkoutError");
+        const confirmPayBtn = document.getElementById("confirmPayBtn");
+
+        const ticketModal = document.getElementById("ticketModal");
+        const closeTicketBtn = document.getElementById("closeTicketBtn");
+        const ticketPassCapture = document.getElementById("ticketPassCapture");
+        const passPaidStamp = document.getElementById("passPaidStamp");
+        const passMovieTitle = document.getElementById("passMovieTitle");
+        const passShowtime = document.getElementById("passShowtime");
+        const passTicketId = document.getElementById("passTicketId");
+        const passPhone = document.getElementById("passPhone");
+        const passSeats = document.getElementById("passSeats");
+        const passBillTicketLabel = document.getElementById("passBillTicketLabel");
+        const passBillSubtotal = document.getElementById("passBillSubtotal");
+        const passBillTotal = document.getElementById("passBillTotal");
+        const gateQrCanvas = document.getElementById("gateQrCanvas");
+        const saveGalleryBtn = document.getElementById("saveGalleryBtn");
+        const saveFeedback = document.getElementById("saveFeedback");
+        const bookMoreBtn = document.getElementById("bookMoreBtn");
+
+        // =========================================================================
+        // 5. PURE VANILLA JS QR CODE GENERATOR (OFFLINE + HTML2CANVAS SAFE)
+        // =========================================================================
+        const QRGen = (function () {
+          const EXP = new Array(512);
+          const LOG = new Array(256);
+          let x = 1;
+          for (let i = 0; i < 255; i++) {
+            EXP[i] = x;
+            LOG[x] = i;
+            x <<= 1;
+            if (x & 0x100) x ^= 0x11d;
+          }
+          for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
+
+          function gfMul(a, b) {
+            if (a === 0 || b === 0) return 0;
+            return EXP[LOG[a] + LOG[b]];
+          }
+
+          function polyMul(p1, p2) {
+            const out = new Array(p1.length + p2.length - 1).fill(0);
+            for (let i = 0; i < p1.length; i++) {
+              for (let j = 0; j < p2.length; j++) {
+                out[i + j] ^= gfMul(p1[i], p2[j]);
+              }
+            }
+            return out;
+          }
+
+          function rsGenPoly(ecLen) {
+            let g = [1];
+            for (let i = 0; i < ecLen; i++) {
+              g = polyMul(g, [1, EXP[i]]);
+            }
+            return g;
+          }
+
+          function rsRemainder(data, ecLen) {
+            const gen = rsGenPoly(ecLen);
+            const res = data.concat(new Array(ecLen).fill(0));
+            for (let i = 0; i < data.length; i++) {
+              const coef = res[i];
+              if (coef !== 0) {
+                for (let j = 0; j < gen.length; j++) {
+                  res[i + j] ^= gfMul(gen[j], coef);
+                }
+              }
+            }
+            return res.slice(data.length);
+          }
+
+          // Version capacities for EC Level M (Single block Versions 1-6, bytes capacity)
+          // [version, totalCodewords, ecCodewordsPerBlock, numBlocks, alignPos]
+          const VERSIONS = [
+            { v: 1, total: 26, ec: 10, blocks: 1, cap: 14, align: [] },
+            { v: 2, total: 44, ec: 16, blocks: 1, cap: 26, align: [6, 18] },
+            { v: 3, total: 70, ec: 26, blocks: 1, cap: 42, align: [6, 22] },
+            { v: 4, total: 100, ec: 18, blocks: 2, cap: 64, align: [6, 26] },
+            { v: 5, total: 134, ec: 24, blocks: 2, cap: 84, align: [6, 30] },
+            { v: 6, total: 172, ec: 16, blocks: 4, cap: 106, align: [6, 34] },
+          ];
+
+          function utf8Bytes(str) {
+            if (typeof TextEncoder !== "undefined") {
+              return Array.from(new TextEncoder().encode(str));
+            }
+            const arr = [];
+            for (let i = 0; i < str.length; i++) {
+              arr.push(str.charCodeAt(i) & 0xff);
+            }
+            return arr;
+          }
+
+          function buildMatrix(text) {
+            let bytes = utf8Bytes(text);
+            let spec = VERSIONS.find((s) => bytes.length <= s.cap);
+            if (!spec) {
+              bytes = bytes.slice(0, 106);
+              spec = VERSIONS[VERSIONS.length - 1];
+            }
+
+            const dataCap = spec.total - spec.ec * spec.blocks;
+            const bits = [];
+            const pushBits = (val, len) => {
+              for (let i = len - 1; i >= 0; i--) bits.push((val >> i) & 1);
+            };
+
+            pushBits(0b0100, 4); // Byte mode
+            pushBits(bytes.length, 8);
+            for (const b of bytes) pushBits(b, 8);
+            const maxBits = dataCap * 8;
+            const term = Math.min(4, maxBits - bits.length);
+            pushBits(0, term);
+            while (bits.length % 8 !== 0) bits.push(0);
+            const padBytes = [0xec, 0x11];
+            let pIdx = 0;
+            while (bits.length < maxBits) {
+              pushBits(padBytes[pIdx % 2], 8);
+              pIdx++;
+            }
+
+            const codewords = [];
+            for (let i = 0; i < bits.length; i += 8) {
+              let val = 0;
+              for (let j = 0; j < 8; j++) val = (val << 1) | bits[i + j];
+              codewords.push(val);
+            }
+
+            // Split into equal blocks (v1-v6 Level M all have equal-sized blocks!)
+            const blockSize = Math.floor(dataCap / spec.blocks);
+            const dataBlocks = [];
+            const ecBlocks = [];
+            for (let b = 0; b < spec.blocks; b++) {
+              const slice = codewords.slice(b * blockSize, (b + 1) * blockSize);
+              dataBlocks.push(slice);
+              ecBlocks.push(rsRemainder(slice, spec.ec));
+            }
+
+            const finalBytes = [];
+            for (let i = 0; i < blockSize; i++) {
+              for (let b = 0; b < spec.blocks; b++) finalBytes.push(dataBlocks[b][i]);
+            }
+            for (let i = 0; i < spec.ec; i++) {
+              for (let b = 0; b < spec.blocks; b++) finalBytes.push(ecBlocks[b][i]);
+            }
+
+            const size = spec.v * 4 + 17;
+            const mod = Array.from({ length: size }, () => new Array(size).fill(null));
+            const isFunc = Array.from({ length: size }, () => new Array(size).fill(false));
+
+            function setFunc(r, c, val) {
+              if (r >= 0 && r < size && c >= 0 && c < size) {
+                mod[r][c] = val ? 1 : 0;
+                isFunc[r][c] = true;
+              }
+            }
+
+            function drawFinder(top, left) {
+              for (let r = -1; r <= 7; r++) {
+                for (let c = -1; c <= 7; c++) {
+                  const rr = top + r;
+                  const cc = left + c;
+                  if (rr < 0 || rr >= size || cc < 0 || cc >= size) continue;
+                  const on =
+                    r >= 0 &&
+                    r <= 6 &&
+                    c >= 0 &&
+                    c <= 6 &&
+                    (r === 0 ||
+                      r === 6 ||
+                      c === 0 ||
+                      c === 6 ||
+                      (r >= 2 && r <= 4 && c >= 2 && c <= 4));
+                  setFunc(rr, cc, on);
+                }
+              }
+            }
+
+            drawFinder(0, 0);
+            drawFinder(0, size - 7);
+            drawFinder(size - 7, 0);
+
+            if (spec.align.length >= 2) {
+              const pos = spec.align;
+              for (const ar of pos) {
+                for (const ac of pos) {
+                  if (
+                    (ar === 6 && ac === 6) ||
+                    (ar === 6 && ac === size - 7) ||
+                    (ar === size - 7 && ac === 6)
+                  ) {
+                    continue;
+                  }
+                  for (let r = -2; r <= 2; r++) {
+                    for (let c = -2; c <= 2; c++) {
+                      const on = Math.abs(r) === 2 || Math.abs(c) === 2 || (r === 0 && c === 0);
+                      setFunc(ar + r, ac + c, on);
+                    }
+                  }
+                }
+              }
+            }
+
+            for (let i = 8; i < size - 8; i++) {
+              if (!isFunc[6][i]) setFunc(6, i, i % 2 === 0);
+              if (!isFunc[i][6]) setFunc(i, 6, i % 2 === 0);
+            }
+
+            setFunc(size - 8, 8, 1);
+
+            // Reserve format info cells
+            for (let i = 0; i < 9; i++) {
+              if (!isFunc[8][i]) setFunc(8, i, 0);
+              if (!isFunc[i][8]) setFunc(i, 8, 0);
+            }
+            for (let i = 0; i < 8; i++) {
+              setFunc(8, size - 1 - i, 0);
+              if (i < 7) setFunc(size - 1 - i, 8, 0);
+            }
+
+            // Place data bits zigzag
+            const allBits = [];
+            for (const b of finalBytes) {
+              for (let i = 7; i >= 0; i--) allBits.push((b >> i) & 1);
+            }
+
+            let bitIdx = 0;
+            let upward = true;
+            for (let col = size - 1; col >= 1; col -= 2) {
+              if (col === 6) col = 5;
+              for (let step = 0; step < size; step++) {
+                const row = upward ? size - 1 - step : step;
+                for (let dc = 0; dc < 2; dc++) {
+                  const c = col - dc;
+                  if (!isFunc[row][c]) {
+                    mod[row][c] = bitIdx < allBits.length ? allBits[bitIdx++] : 0;
+                  }
+                }
+              }
+              upward = !upward;
+            }
+
+            // Apply Mask 2 ((col % 3) === 0) and write EC Level M format bits (00 + 010)
+            const MASK_ID = 2;
+            for (let r = 0; r < size; r++) {
+              for (let c = 0; c < size; c++) {
+                if (!isFunc[r][c] && c % 3 === 0) {
+                  mod[r][c] ^= 1;
+                }
+              }
+            }
+
+            // Compute 15-bit format info for EC Level M (00) + mask (010)
+            const dataFmt = (0b00 << 3) | MASK_ID;
+            let rem = dataFmt << 10;
+            const gFmt = 0b10100110111;
+            for (let i = 4; i >= 0; i--) {
+              if ((rem >> (i + 10)) & 1) rem ^= gFmt << i;
+            }
+            const fmtBits = ((dataFmt << 10) | rem) ^ 0b101010000010010;
+
+            for (let i = 0; i <= 5; i++) setFunc(8, i, (fmtBits >> (14 - i)) & 1);
+            setFunc(8, 7, (fmtBits >> 8) & 1);
+            setFunc(8, 8, (fmtBits >> 7) & 1);
+            setFunc(7, 8, (fmtBits >> 6) & 1);
+            for (let i = 0; i <= 5; i++) setFunc(5 - i, 8, (fmtBits >> i) & 1);
+
+            for (let i = 0; i < 8; i++) setFunc(8, size - 1 - i, (fmtBits >> i) & 1);
+            for (let i = 0; i < 7; i++) setFunc(size - 1 - i, 8, (fmtBits >> (14 - i)) & 1);
+
+            return mod;
+          }
+
+          function drawToCanvas(canvas, text, darkColor) {
+            if (!canvas) return;
+            const matrix = buildMatrix(text);
+            const size = matrix.length;
+            const quiet = 3;
+            const totalModules = size + quiet * 2;
+            const ctx = canvas.getContext("2d");
+            const pxSize = canvas.width;
+            const cell = Math.floor(pxSize / totalModules);
+            const drawSpan = cell * totalModules;
+            const offset = Math.floor((pxSize - drawSpan) / 2);
+
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, pxSize, pxSize);
+            ctx.fillStyle = darkColor || "#0f172a";
+
+            for (let r = 0; r < size; r++) {
+              for (let c = 0; c < size; c++) {
+                if (matrix[r][c] === 1) {
+                  ctx.fillRect(
+                    offset + (c + quiet) * cell,
+                    offset + (r + quiet) * cell,
+                    cell,
+                    cell
+                  );
+                }
+              }
+            }
+          }
+
+          return { drawToCanvas };
+        })();
+
+        // =========================================================================
+        // 6. HELPERS
+        // =========================================================================
+        function showKey(movieId, showtime) {
+          return `${movieId || "default"}__${showtime || "12:00 PM"}`;
+        }
+
+        function getActiveMovie() {
+          return movies.find((m) => m.id === activeMovieId) || movies[0];
+        }
+
+        function getUnitPrice() {
+          const m = getActiveMovie();
+          const p = Number(m && m.price);
+          return Number.isFinite(p) && p > 0 ? p : DEFAULT_PRICE_NPR;
+        }
+
+        function sortSeats(seatArr) {
+          return seatArr.slice().sort((a, b) => {
+            const ra = a.charAt(0);
+            const rb = b.charAt(0);
+            if (ra !== rb) return ra.localeCompare(rb);
+            return Number(a.slice(1)) - Number(b.slice(1));
+          });
+        }
+
+        function formatNpr(amount) {
+          return "Rs. " + Number(amount || 0).toLocaleString("en-IN");
+        }
+
+        function sanitizeMoviesSnapshot(val) {
+          if (!val) return [];
+          const list = Array.isArray(val)
+            ? val.filter(Boolean)
+            : Object.keys(val).map((k) => Object.assign({ id: k }, val[k]));
+
+          return list
+            .map((item, idx) => {
+              const title = String(item.title || item.name || "").trim();
+              if (!title) return null;
+              let times = [];
+              if (Array.isArray(item.showtimes)) {
+                times = item.showtimes.map((t) => String(t).trim()).filter(Boolean);
+              } else if (typeof item.showtimes === "string") {
+                times = item.showtimes
+                  .split(",")
+                  .map((t) => t.trim())
+                  .filter(Boolean);
+              } else if (item.time) {
+                times = [String(item.time).trim()];
+              }
+              if (!times.length) times = ["12:00 PM", "03:00 PM"];
+              return {
+                id: String(item.id || `movie-${idx + 1}`),
+                title,
+                subtitle: String(
+                  item.subtitle || item.language || item.hall || "Gole Complex · Screen 1"
+                ),
+                price: Number(item.price) > 0 ? Number(item.price) : DEFAULT_PRICE_NPR,
+                posterUrl: String(item.posterUrl || item.poster || ""),
+                showtimes: times,
+              };
+            })
+            .filter(Boolean);
+        }
+
+        // =========================================================================
+        // 7. TIME-GATED BOOKING LOGIC (12:00 AM – 3:00 PM LOCAL TIME)
+        // =========================================================================
+        function evaluateCounterStatus() {
+          const now = new Date();
+          const h = now.getHours();
+          const m = now.getMinutes();
+          const s = now.getSeconds();
+
+          // Strictly active between 00:00 (12:00 AM) and 15:00 (3:00 PM) local time
+          const naturalOpen = h >= 0 && h < 15;
+          let isOpen = naturalOpen;
+          if (demoMode === "FORCE_OPEN") isOpen = true;
+          if (demoMode === "FORCE_CLOSED") isOpen = false;
+
+          if (isOpen) {
+            statusPill.className = "status-pill open";
+            statusPill.textContent = "COUNTER OPEN (Until 3 PM)";
+            closedOverlay.classList.add("is-hidden");
+          } else {
+            statusPill.className = "status-pill closed";
+            statusPill.textContent = "COUNTER CLOSED";
+            closedOverlay.classList.remove("is-hidden");
+          }
+
+          // Countdown to next 12:00 AM (00:00:00)
+          const secToday = h * 3600 + m * 60 + s;
+          const remaining = 24 * 3600 - secToday;
+          const hh = String(Math.floor(remaining / 3600)).padStart(2, "0");
+          const mm = String(Math.floor((remaining % 3600) / 60)).padStart(2, "0");
+          const ss = String(remaining % 60).padStart(2, "0");
+          reopenCountdown.textContent = `${hh}:${mm}:${ss}`;
+
+          const timeStr = now.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+          closedLocalTime.textContent = `Local time: ${timeStr} · Online window: 12:00 AM – 3:00 PM`;
+        }
+
+        demoOverrideBtn.addEventListener("click", () => {
+          if (demoMode === "AUTO") demoMode = "FORCE_OPEN";
+          else if (demoMode === "FORCE_OPEN") demoMode = "FORCE_CLOSED";
+          else demoMode = "AUTO";
+
+          demoOverrideBtn.setAttribute("data-mode", demoMode);
+          const labelMap = {
+            AUTO: "Mode: AUTO",
+            FORCE_OPEN: "Mode: FORCE OPEN",
+            FORCE_CLOSED: "Mode: FORCE CLOSED",
+          };
+          demoOverrideBtn.textContent = labelMap[demoMode];
+          evaluateCounterStatus();
+        });
+
+        // =========================================================================
+        // 8. DATA SYNC (FIREBASE RTDB + GRACEFUL LOCAL FALLBACK)
+        // =========================================================================
+        function applyBookingsList(records) {
+          const nextMap = {};
+          for (const rec of records) {
+            if (!rec || !Array.isArray(rec.seats)) continue;
+            const mId = rec.movieId || activeMovieId;
+            const sTime = rec.time || activeShowtime;
+            const key = showKey(mId, sTime);
+            if (!nextMap[key]) nextMap[key] = new Set();
+            for (const seat of rec.seats) {
+              nextMap[key].add(String(seat));
+            }
+          }
+          bookedSeatsByShow = nextMap;
+
+          // Remove any locally selected seats that just got booked remotely
+          const curKey = showKey(activeMovieId, activeShowtime);
+          const bookedSet = bookedSeatsByShow[curKey] || new Set();
+          selectedSeats = selectedSeats.filter((s) => !bookedSet.has(s));
+          renderSeatMatrix();
+          updateStickyBar();
+        }
+
+        function applyHoldsMap(rawHolds) {
+          const now = Date.now();
+          const cleaned = {};
+          if (rawHolds && typeof rawHolds === "object") {
+            for (const key of Object.keys(rawHolds)) {
+              const group = rawHolds[key];
+              if (!group || typeof group !== "object") continue;
+              for (const seatId of Object.keys(group)) {
+                const hold = group[seatId];
+                if (hold && hold.expiresAt > now) {
+                  if (!cleaned[key]) cleaned[key] = {};
+                  cleaned[key][seatId] = hold;
+                }
+              }
+            }
+          }
+          holdsByShow = cleaned;
+          renderSeatMatrix();
+        }
+
+        function readLocalBookings() {
+          try {
+            const raw = localStorage.getItem(LOCAL_BOOKINGS_KEY);
+            return raw ? JSON.parse(raw) : [];
+          } catch {
+            return [];
+          }
+        }
+
+        function readLocalHolds() {
+          try {
+            const raw = localStorage.getItem(LOCAL_HOLDS_KEY);
+            return raw ? JSON.parse(raw) : {};
+          } catch {
+            return {};
+          }
+        }
+
+        function syncLocalState() {
+          applyBookingsList(readLocalBookings());
+          applyHoldsMap(readLocalHolds());
+        }
+
+        function startRealtimeListeners() {
+          // Render fallback movie and 190-seat matrix immediately so UI never stalls while RTDB connects
+          renderMovies();
+          renderSeatMatrix();
+          updateStickyBar();
+
+          if (firebaseReady && db) {
+            catalogSyncNote.textContent = "Live Synced";
+
+            db.ref("active_movies").on(
+              "value",
+              (snapshot) => {
+                const parsed = sanitizeMoviesSnapshot(snapshot.val());
+                movies = parsed.length ? parsed : FALLBACK_DEFAULT_MOVIES.slice();
+                if (!movies.some((m) => m.id === activeMovieId)) {
+                  activeMovieId = movies[0].id;
+                  activeShowtime = movies[0].showtimes[0];
+                  selectedSeats = [];
+                } else {
+                  const cur = getActiveMovie();
+                  if (!cur.showtimes.includes(activeShowtime)) {
+                    activeShowtime = cur.showtimes[0];
+                    selectedSeats = [];
+                  }
+                }
+                renderMovies();
+                renderSeatMatrix();
+                updateStickyBar();
+              },
+              (err) => {
+                console.warn("Firebase active_movies read error, using default:", err);
+                catalogSyncNote.textContent = "Gole Complex · Live Hall";
+                movies = FALLBACK_DEFAULT_MOVIES.slice();
+                renderMovies();
+                renderSeatMatrix();
+                updateStickyBar();
+              }
+            );
+
+            db.ref("ticket_bookings").on(
+              "value",
+              (snapshot) => {
+                const val = snapshot.val() || {};
+                const list = Object.values(val);
+                applyBookingsList(list);
+              },
+              (err) => {
+                console.warn("Firebase ticket_bookings read error:", err);
+              }
+            );
+
+            db.ref("seat_holds").on("value", (snapshot) => {
+              applyHoldsMap(snapshot.val() || {});
+            });
+          } else {
+            catalogSyncNote.textContent = "Gole Complex · Live Hall";
+            renderMovies();
+            syncLocalState();
+            window.addEventListener("storage", syncLocalState);
+            if (bc) {
+              bc.onmessage = () => syncLocalState();
+            }
+          }
+        }
+
+        function setCheckoutHold(active) {
+          inCheckoutHoldActive = active;
+          const key = showKey(activeMovieId, activeShowtime);
+          const expiresAt = Date.now() + 5 * 60 * 1000;
+
+          if (firebaseReady && db) {
+            const ref = db.ref(`seat_holds/${key}`);
+            if (active) {
+              const updates = {};
+              for (const s of selectedSeats) {
+                updates[s] = { clientId: CLIENT_SESSION_ID, expiresAt };
+              }
+              ref.update(updates).catch(() => {});
+            } else {
+              ref.once("value", (snap) => {
+                const val = snap.val() || {};
+                const updates = {};
+                for (const s of Object.keys(val)) {
+                  if (val[s] && val[s].clientId === CLIENT_SESSION_ID) {
+                    updates[s] = null;
+                  }
+                }
+                if (Object.keys(updates).length) ref.update(updates).catch(() => {});
+              });
+            }
+            return;
+          }
+
+          const allHolds = readLocalHolds();
+          if (!allHolds[key]) allHolds[key] = {};
+          if (active) {
+            for (const s of selectedSeats) {
+              allHolds[key][s] = { clientId: CLIENT_SESSION_ID, expiresAt };
+            }
+          } else {
+            for (const s of Object.keys(allHolds[key])) {
+              if (allHolds[key][s]?.clientId === CLIENT_SESSION_ID) {
+                delete allHolds[key][s];
+              }
+            }
+          }
+          try {
+            localStorage.setItem(LOCAL_HOLDS_KEY, JSON.stringify(allHolds));
+            if (bc) bc.postMessage({ type: "holds_updated" });
+          } catch {}
+          applyHoldsMap(allHolds);
+        }
+
+        // =========================================================================
+        // 9. RENDER MOVIE CATALOG & 190-SEAT MATRIX
+        // =========================================================================
+        function renderMovies() {
+          movieListEl.innerHTML = "";
+          movies.forEach((movie) => {
+            const isActiveMovie = movie.id === activeMovieId;
+            const card = document.createElement("div");
+            card.className = "movie-card" + (isActiveMovie ? " active" : "");
+
+            const posterWrap = document.createElement("div");
+            posterWrap.className = "poster-wrap";
+            if (movie.posterUrl) {
+              const img = document.createElement("img");
+              img.src = movie.posterUrl;
+              img.alt = movie.title;
+              img.referrerPolicy = "no-referrer";
+              img.onerror = function () {
+                posterWrap.innerHTML = buildFallbackPosterHTML(movie.title);
+              };
+              posterWrap.appendChild(img);
+            } else {
+              posterWrap.innerHTML = buildFallbackPosterHTML(movie.title);
+            }
+
+            const info = document.createElement("div");
+            info.className = "movie-info";
+
+            const top = document.createElement("div");
+            const titleEl = document.createElement("div");
+            titleEl.className = "movie-title";
+            titleEl.textContent = movie.title;
+
+            const subEl = document.createElement("div");
+            subEl.className = "movie-subline";
+            subEl.textContent = movie.subtitle;
+
+            const priceEl = document.createElement("div");
+            priceEl.className = "movie-price mono";
+            priceEl.textContent = `${formatNpr(movie.price)} / seat`;
+
+            top.appendChild(titleEl);
+            top.appendChild(subEl);
+            top.appendChild(priceEl);
+
+            const timesRow = document.createElement("div");
+            timesRow.className = "showtimes-row";
+            movie.showtimes.forEach((timeLabel) => {
+              const btn = document.createElement("button");
+              btn.type = "button";
+              const isSelectedTime = isActiveMovie && activeShowtime === timeLabel;
+              btn.className = "showtime-btn" + (isSelectedTime ? " active" : "");
+              btn.textContent = timeLabel;
+              btn.addEventListener("click", (ev) => {
+                ev.stopPropagation();
+                selectMovieAndTime(movie.id, timeLabel);
+              });
+              timesRow.appendChild(btn);
+            });
+
+            info.appendChild(top);
+            info.appendChild(timesRow);
+            card.appendChild(posterWrap);
+            card.appendChild(info);
+
+            card.addEventListener("click", () => {
+              const nextTime =
+                isActiveMovie && movie.showtimes.includes(activeShowtime)
+                  ? activeShowtime
+                  : movie.showtimes[0];
+              selectMovieAndTime(movie.id, nextTime);
+            });
+
+            movieListEl.appendChild(card);
+          });
+        }
+
+        function buildFallbackPosterHTML(title) {
+          const safeTitle = String(title || "Event Cinemas")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+          return `
+            <div class="poster-fallback">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="1.8">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <path d="M7 4v16M17 4v16M2 9h5M17 9h5M2 15h5M17 15h5"></path>
+              </svg>
+              <div class="poster-fallback-title">${safeTitle}</div>
+            </div>
+          `;
+        }
+
+        function selectMovieAndTime(movieId, timeLabel) {
+          if (movieId === activeMovieId && timeLabel === activeShowtime) return;
+          if (inCheckoutHoldActive) setCheckoutHold(false);
+          activeMovieId = movieId;
+          activeShowtime = timeLabel;
+          selectedSeats = [];
+          renderMovies();
+          renderSeatMatrix();
+          updateStickyBar();
+        }
+
+        function renderSeatMatrix() {
+          const movie = getActiveMovie();
+          const unitPrice = getUnitPrice();
+          const key = showKey(movie.id, activeShowtime);
+          const bookedSet = bookedSeatsByShow[key] || new Set();
+          const holdMap = holdsByShow[key] || {};
+
+          activeMovieHeading.textContent = movie.title;
+          activeShowSub.textContent = `${activeShowtime} · ${formatNpr(unitPrice)} per seat · 190 Seats`;
+
+          let unavailableCount = 0;
+          seatGridEl.innerHTML = "";
+
+          ROWS.forEach((rowLetter) => {
+            const rowEl = document.createElement("div");
+            rowEl.className = "seat-row";
+
+            const leftLabel = document.createElement("span");
+            leftLabel.className = "row-label mono";
+            leftLabel.textContent = rowLetter;
+            rowEl.appendChild(leftLabel);
+
+            for (let num = 1; num <= SEATS_PER_ROW; num++) {
+              if (num === 11) {
+                const aisle = document.createElement("span");
+                aisle.className = "aisle-gap";
+                aisle.setAttribute("aria-hidden", "true");
+                rowEl.appendChild(aisle);
+              }
+
+              const seatId = `${rowLetter}${num}`;
+              const isBooked = bookedSet.has(seatId);
+              const holdEntry = holdMap[seatId];
+              const isReservedOther =
+                !isBooked &&
+                holdEntry &&
+                holdEntry.expiresAt > Date.now() &&
+                holdEntry.clientId !== CLIENT_SESSION_ID;
+              const isUserSelected =
+                !isBooked && !isReservedOther && selectedSeats.includes(seatId);
+
+              if (isBooked || isReservedOther) unavailableCount += 1;
+
+              const btn = document.createElement("button");
+              btn.type = "button";
+              btn.className = "seat-btn mono ";
+              btn.textContent = String(num);
+              btn.setAttribute("aria-label", `Seat ${seatId}`);
+
+              if (isBooked) {
+                btn.className += "booked";
+                btn.disabled = true;
+                btn.title = `${seatId} · Booked`;
+              } else if (isReservedOther) {
+                btn.className += "reserved";
+                btn.disabled = true;
+                btn.title = `${seatId} · Reserved / In-Checkout`;
+              } else if (isUserSelected) {
+                btn.className += "selected";
+                btn.title = `${seatId} · Selected`;
+                btn.addEventListener("click", () => toggleSeat(seatId));
+              } else {
+                btn.className += "available";
+                btn.title = `${seatId} · Available (${formatNpr(unitPrice)})`;
+                btn.addEventListener("click", () => toggleSeat(seatId));
+              }
+
+              rowEl.appendChild(btn);
+            }
+
+            const rightLabel = document.createElement("span");
+            rightLabel.className = "row-label mono";
+            rightLabel.textContent = rowLetter;
+            rowEl.appendChild(rightLabel);
+
+            seatGridEl.appendChild(rowEl);
+          });
+
+          const freeCount = Math.max(0, 190 - unavailableCount);
+          availableCounter.textContent = `${freeCount} / 190 Free`;
+          clearSeatsBtn.style.display = selectedSeats.length ? "inline-flex" : "none";
+        }
+
+        function toggleSeat(seatId) {
+          const idx = selectedSeats.indexOf(seatId);
+          if (idx >= 0) {
+            selectedSeats.splice(idx, 1);
+          } else {
+            selectedSeats.push(seatId);
+          }
+          selectedSeats = sortSeats(selectedSeats);
+          renderSeatMatrix();
+          updateStickyBar();
+        }
+
+        clearSeatsBtn.addEventListener("click", () => {
+          selectedSeats = [];
+          renderSeatMatrix();
+          updateStickyBar();
+        });
+
+        function updateStickyBar() {
+          const count = selectedSeats.length;
+          const total = count * getUnitPrice();
+          const movie = getActiveMovie();
+
+          if (count === 0) {
+            stickyBar.classList.add("hidden-bar");
+            return;
+          }
+
+          stickyBar.classList.remove("hidden-bar");
+          stickySeatsText.textContent = `${count} Seat${count > 1 ? "s" : ""}: ${selectedSeats.join(", ")}`;
+          stickyShowText.textContent = `${movie.title} · ${activeShowtime}`;
+          openCheckoutBtn.textContent = `Book ${count} Seat${count > 1 ? "s" : ""} • ${formatNpr(total)} →`;
+        }
+
+        // =========================================================================
+        // 10. CHECKOUT MODAL & FONEPAY QR
+        // =========================================================================
+        function updatePaymentTabs() {
+          const total = selectedSeats.length * getUnitPrice();
+          if (paymentMethod === "FONEPAY") {
+            payTabFonepay.classList.add("active");
+            payTabCash.classList.remove("active");
+            fonepayPanel.style.display = "block";
+            cashPanel.style.display = "none";
+
+            const movie = getActiveMovie();
+            const fonepayPayload = `FONEPAY|EVENT_CINEMAS_GOLE|LALBANDI-7|NPR:${total}|SHOW:${activeShowtime}|SEATS:${selectedSeats.join(",")}|MOVIE:${movie.title.slice(0, 18)}`;
+            QRGen.drawToCanvas(fonepayQrCanvas, fonepayPayload, "#0f172a");
+            fonepayAmountNote.textContent = `Scan with eSewa, Khalti, or Mobile Banking to pay ${formatNpr(total)}, then tap Confirm & Pay.`;
+          } else {
+            payTabCash.classList.add("active");
+            payTabFonepay.classList.remove("active");
+            fonepayPanel.style.display = "none";
+            cashPanel.style.display = "block";
+            cashAmountNote.textContent = formatNpr(total);
+          }
+        }
+
+        openCheckoutBtn.addEventListener("click", () => {
+          if (!selectedSeats.length) return;
+          const movie = getActiveMovie();
+          const total = selectedSeats.length * getUnitPrice();
+
+          chkMovie.textContent = movie.title;
+          chkTime.textContent = activeShowtime;
+          chkSeats.textContent = selectedSeats.join(", ");
+          chkTotal.textContent = formatNpr(total);
+          checkoutError.classList.add("is-hidden");
+
+          setCheckoutHold(true);
+          updatePaymentTabs();
+          checkoutModal.classList.remove("is-hidden");
+          setTimeout(() => customerPhoneInput.focus(), 80);
+        });
+
+        function closeCheckout() {
+          checkoutModal.classList.add("is-hidden");
+          setCheckoutHold(false);
+        }
+
+        closeCheckoutBtn.addEventListener("click", closeCheckout);
+        payTabFonepay.addEventListener("click", () => {
+          paymentMethod = "FONEPAY";
+          updatePaymentTabs();
+        });
+        payTabCash.addEventListener("click", () => {
+          paymentMethod = "CASH";
+          updatePaymentTabs();
+        });
+
+        confirmPayBtn.addEventListener("click", async () => {
+          const rawPhone = String(customerPhoneInput.value || "").trim();
+          const digits = rawPhone.replace(/\D/g, "");
+          if (digits.length < 7 || digits.length > 15) {
+            checkoutError.textContent =
+              "Please enter a valid mobile phone number (7–15 digits).";
+            checkoutError.classList.remove("is-hidden");
+            customerPhoneInput.focus();
+            return;
+          }
+
+          if (!selectedSeats.length) {
+            closeCheckout();
+            return;
+          }
+
+          checkoutError.classList.add("is-hidden");
+          confirmPayBtn.disabled = true;
+          confirmPayBtn.textContent = "Confirming Booking...";
+
+          const movie = getActiveMovie();
+          const unitPrice = getUnitPrice();
+          const seatsCopy = selectedSeats.slice();
+          const seatCount = seatsCopy.length;
+          const totalAmount = seatCount * unitPrice;
+          const ticketId =
+            "EC-" +
+            Date.now().toString(36).toUpperCase().slice(-4) +
+            Math.random().toString(36).substring(2, 5).toUpperCase();
+
+          const bookingRecord = {
+            ticketId,
+            movieId: movie.id,
+            movieTitle: movie.title,
+            seats: seatsCopy,
+            seatCount,
+            unitPrice,
+            totalAmount,
+            customerPhone: rawPhone,
+            paymentMethod,
+            time: activeShowtime,
+            timestamp: Date.now(),
+          };
+
+          try {
+            if (firebaseReady && db) {
+              const pushPromise = db.ref("ticket_bookings").push({
+                ticketId: bookingRecord.ticketId,
+                movieId: bookingRecord.movieId,
+                movieTitle: bookingRecord.movieTitle,
+                seats: bookingRecord.seats,
+                seatCount: bookingRecord.seatCount,
+                totalAmount: bookingRecord.totalAmount,
+                customerPhone: bookingRecord.customerPhone,
+                paymentMethod: bookingRecord.paymentMethod,
+                time: bookingRecord.time,
+                timestamp: bookingRecord.timestamp,
+              });
+              const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(
+                  () =>
+                    reject(
+                      new Error(
+                        "Firebase Realtime Database timed out. Ensure Realtime Database is created and rules allow writes."
+                      )
+                    ),
+                  6000
+                )
+              );
+              await Promise.race([pushPromise, timeoutPromise]);
+              if (analytics && typeof analytics.logEvent === "function") {
+                try {
+                  analytics.logEvent("ticket_booked", {
+                    ticket_id: bookingRecord.ticketId,
+                    seat_count: bookingRecord.seatCount,
+                    value: bookingRecord.totalAmount,
+                    currency: "NPR",
+                    payment_type: bookingRecord.paymentMethod,
+                  });
+                } catch {}
+              }
+            } else {
+              const existing = readLocalBookings();
+              existing.push(bookingRecord);
+              localStorage.setItem(LOCAL_BOOKINGS_KEY, JSON.stringify(existing));
+              if (bc) bc.postMessage({ type: "booking_added" });
+              applyBookingsList(existing);
+            }
+
+            setCheckoutHold(false);
+            selectedSeats = [];
+            checkoutModal.classList.add("is-hidden");
+            renderSeatMatrix();
+            updateStickyBar();
+            openTicketPassModal(bookingRecord);
+          } catch (err) {
+            console.error("Booking transmission failed:", err);
+            checkoutError.textContent =
+              err && err.message
+                ? err.message
+                : "Could not transmit booking. Please check connection and retry.";
+            checkoutError.classList.remove("is-hidden");
+          } finally {
+            confirmPayBtn.disabled = false;
+            confirmPayBtn.textContent = "Confirm & Pay";
+          }
+        });
+
+        // =========================================================================
+        // 11. ITEMIZED BILL MODAL & 300 DPI GALLERY EXPORT
+        // =========================================================================
+        function openTicketPassModal(ticket) {
+          lastIssuedTicket = ticket;
+          saveFeedback.textContent = "";
+
+          passPaidStamp.textContent =
+            ticket.paymentMethod === "FONEPAY" ? "PAID · FONEPAY" : "PAID · CASH";
+          passMovieTitle.textContent = ticket.movieTitle;
+          passShowtime.textContent = `Showtime: ${ticket.time} · Event Cinemas, Gole Complex`;
+          passTicketId.textContent = ticket.ticketId;
+          passPhone.textContent = ticket.customerPhone;
+          passSeats.textContent = ticket.seats.join(", ");
+
+          passBillTicketLabel.textContent = `Tickets (${ticket.seatCount} × ${formatNpr(ticket.unitPrice)})`;
+          passBillSubtotal.textContent = formatNpr(ticket.totalAmount);
+          passBillTotal.textContent = formatNpr(ticket.totalAmount);
+
+          const gateQrPayload = `EC-GATE|${ticket.ticketId}|${ticket.time}|${ticket.seats.join(",")}|${ticket.customerPhone}`;
+          QRGen.drawToCanvas(gateQrCanvas, gateQrPayload, "#0f172a");
+
+          ticketModal.classList.remove("is-hidden");
+        }
+
+        function closeTicketPassModal() {
+          ticketModal.classList.add("is-hidden");
+        }
+
+        closeTicketBtn.addEventListener("click", closeTicketPassModal);
+        bookMoreBtn.addEventListener("click", closeTicketPassModal);
+
+        saveGalleryBtn.addEventListener("click", async () => {
+          if (typeof html2canvas === "undefined") {
+            saveFeedback.textContent = "Export library still loading — please retry.";
+            return;
+          }
+
+          saveGalleryBtn.disabled = true;
+          saveGalleryBtn.textContent = "Generating 300 DPI Ticket Photo...";
+          saveFeedback.textContent = "";
+
+          try {
+            const canvas = await html2canvas(ticketPassCapture, {
+              scale: 3,
+              backgroundColor: "#ffffff",
+              useCORS: true,
+              logging: false,
+            });
+            const dataUrl = canvas.toDataURL("image/png");
+            const link = document.createElement("a");
+            const idPart = lastIssuedTicket ? lastIssuedTicket.ticketId : "PASS";
+            link.download = `EventCinemas-Ticket-${idPart}.png`;
+            link.href = dataUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            saveFeedback.textContent = "Ticket image saved! Check your device Gallery / Downloads.";
+          } catch (err) {
+            console.error("Ticket image export failed:", err);
+            saveFeedback.textContent = "Unable to export photo. Take a screenshot of this pass.";
+          } finally {
+            saveGalleryBtn.disabled = false;
+            saveGalleryBtn.textContent = "📥 Save Ticket to Gallery (Photo)";
+          }
+        });
+
+        // =========================================================================
+        // 12. BOOTSTRAP
+        // =========================================================================
+        evaluateCounterStatus();
+        setInterval(evaluateCounterStatus, 1000);
+        startRealtimeListeners();
+      })();
+    </script>
+  </body>
+</html>
