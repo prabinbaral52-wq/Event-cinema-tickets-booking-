@@ -553,7 +553,7 @@
       }
 
       .seat-grid-inner {
-        min-width: 650px;
+        min-width: 560px;
         display: flex;
         flex-direction: column;
         gap: 7px;
@@ -1300,7 +1300,7 @@
         <div id="movieList" class="movie-list"></div>
       </section>
 
-      <!-- Right / Main: 190-Seat Interactive Matrix -->
+      <!-- Right / Main: 192-Seat Interactive Matrix -->
       <section class="panel seat-panel" aria-label="Seat Selection">
         <div class="active-show-banner">
           <div>
@@ -1308,7 +1308,7 @@
             <div id="activeShowSub" class="active-show-meta">Select showtime</div>
           </div>
           <div class="availability-stats">
-            <span id="availableCounter" class="mono">190 / 190 Free</span>
+            <span id="availableCounter" class="mono">192 / 192 Free</span>
             <button id="clearSeatsBtn" type="button" class="clear-btn" style="display: none">
               Clear
             </button>
@@ -1335,7 +1335,7 @@
           </span>
         </div>
 
-        <div class="swipe-hint">← Swipe horizontally to view all 19 seats per row →</div>
+        <div class="swipe-hint">← Swipe horizontally to view all 16 seats per row →</div>
 
         <div class="seat-scroll-wrap">
           <div id="seatGrid" class="seat-grid-inner"></div>
@@ -1618,8 +1618,9 @@
         // 2. CONSTANTS, FALLBACK CATALOG & LOCAL REALTIME SYNC FALLBACK
         // =========================================================================
         const DEFAULT_PRICE_NPR = 250;
-        const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
-        const SEATS_PER_ROW = 19; // 10 * 19 = 190 seats total
+        const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
+        const SEATS_PER_ROW = 16; // 12 * 16 = 192 seats total
+        const TOTAL_SEATS = ROWS.length * SEATS_PER_ROW; // 192
 
         const FALLBACK_DEFAULT_MOVIES = [
           {
@@ -1648,6 +1649,14 @@
         let movies = FALLBACK_DEFAULT_MOVIES.slice();
         let activeMovieId = movies[0].id;
         let activeShowtime = movies[0].showtimes[0];
+
+        let currentDateKey = getTodayDateKey();
+        let rawMoviesSourceA = {};
+        let rawMoviesSourceB = {};
+        let rawBookingsSourceA = {};
+        let rawBookingsSourceB = {};
+        let rawHoldsSourceA = {};
+        let rawHoldsSourceB = {};
 
         // Map key: `${movieId}__${time}` -> Set of seat IDs
         let bookedSeatsByShow = {};
@@ -2029,21 +2038,76 @@
           return "Rs. " + Number(amount || 0).toLocaleString("en-IN");
         }
 
+        function getTodayDateKey() {
+          const d = new Date();
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, "0");
+          const day = String(d.getDate()).padStart(2, "0");
+          return `${y}-${m}-${day}`;
+        }
+
+        function isRecordFromToday(rec) {
+          if (!rec) return false;
+          const today = getTodayDateKey();
+          if (rec.dateKey) return String(rec.dateKey) === today;
+          if (rec.timestamp) {
+            const d = new Date(Number(rec.timestamp));
+            if (!Number.isNaN(d.getTime())) {
+              const y = d.getFullYear();
+              const m = String(d.getMonth() + 1).padStart(2, "0");
+              const day = String(d.getDate()).padStart(2, "0");
+              return `${y}-${m}-${day}` === today;
+            }
+          }
+          return true;
+        }
+
+        function normalizePosterSrc(raw) {
+          const val = String(raw || "").trim();
+          if (!val) return "";
+          if (
+            val.startsWith("http://") ||
+            val.startsWith("https://") ||
+            val.startsWith("data:image/") ||
+            val.startsWith("blob:") ||
+            val.startsWith("/")
+          ) {
+            return val;
+          }
+          if (val.startsWith("iVBOR")) return "data:image/png;base64," + val;
+          if (val.startsWith("/9j/")) return "data:image/jpeg;base64," + val;
+          return val;
+        }
+
         function sanitizeMoviesSnapshot(val) {
-          if (!val) return [];
-          const list = Array.isArray(val)
-            ? val.filter(Boolean)
-            : Object.keys(val).map((k) => Object.assign({ id: k }, val[k]));
+          if (!val || typeof val !== "object") return [];
+          let list;
+          if (Array.isArray(val)) {
+            list = val.filter((x) => x && typeof x === "object");
+          } else if (val.title || val.name || val.movieTitle) {
+            list = [Object.assign({ id: val.id || "current-movie" }, val)];
+          } else {
+            list = Object.keys(val)
+              .filter((k) => val[k] && typeof val[k] === "object")
+              .map((k) => Object.assign({ id: k }, val[k]));
+          }
 
           return list
             .map((item, idx) => {
-              const title = String(item.title || item.name || "").trim();
+              const title = String(
+                item.title || item.name || item.movieTitle || ""
+              ).trim();
               if (!title) return null;
               let times = [];
               if (Array.isArray(item.showtimes)) {
                 times = item.showtimes.map((t) => String(t).trim()).filter(Boolean);
               } else if (typeof item.showtimes === "string") {
                 times = item.showtimes
+                  .split(",")
+                  .map((t) => t.trim())
+                  .filter(Boolean);
+              } else if (item.showtime) {
+                times = String(item.showtime)
                   .split(",")
                   .map((t) => t.trim())
                   .filter(Boolean);
@@ -2055,14 +2119,29 @@
                 id: String(item.id || `movie-${idx + 1}`),
                 title,
                 subtitle: String(
-                  item.subtitle || item.language || item.hall || "Gole Complex · Screen 1"
+                  item.subtitle ||
+                    item.language ||
+                    item.hall ||
+                    "Gole Complex · Screen 1"
                 ),
-                price: Number(item.price) > 0 ? Number(item.price) : DEFAULT_PRICE_NPR,
-                posterUrl: String(item.posterUrl || item.poster || ""),
+                price:
+                  Number(item.price || item.ticketPrice) > 0
+                    ? Number(item.price || item.ticketPrice)
+                    : DEFAULT_PRICE_NPR,
+                posterUrl: normalizePosterSrc(
+                  item.posterUrl ||
+                    item.poster ||
+                    item.photo ||
+                    item.image ||
+                    item.imageUrl ||
+                    ""
+                ),
                 showtimes: times,
+                createdAt: Number(item.createdAt || 0),
               };
             })
-            .filter(Boolean);
+            .filter(Boolean)
+            .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         }
 
         // =========================================================================
@@ -2104,6 +2183,15 @@
             second: "2-digit",
           });
           closedLocalTime.textContent = `Local time: ${timeStr} · Online window: 12:00 AM – 3:00 PM`;
+
+          // 24-hour daily automatic seat reset at midnight without refreshing
+          const todayKey = getTodayDateKey();
+          if (todayKey !== currentDateKey) {
+            currentDateKey = todayKey;
+            selectedSeats = [];
+            applyMergedBookings();
+            applyMergedHolds();
+          }
         }
 
         demoOverrideBtn.addEventListener("click", () => {
@@ -2124,12 +2212,68 @@
         // =========================================================================
         // 8. DATA SYNC (FIREBASE RTDB + GRACEFUL LOCAL FALLBACK)
         // =========================================================================
+        function applyMergedMovies() {
+          const combined = Object.assign({}, rawMoviesSourceA, rawMoviesSourceB);
+          const parsed = sanitizeMoviesSnapshot(combined);
+          movies = parsed.length ? parsed : FALLBACK_DEFAULT_MOVIES.slice();
+
+          if (!movies.some((m) => m.id === activeMovieId)) {
+            activeMovieId = movies[0].id;
+            activeShowtime = movies[0].showtimes[0];
+            selectedSeats = [];
+          } else {
+            const cur = getActiveMovie();
+            if (!cur.showtimes.includes(activeShowtime)) {
+              activeShowtime = cur.showtimes[0];
+              selectedSeats = [];
+            }
+          }
+          renderMovies();
+          renderSeatMatrix();
+          updateStickyBar();
+        }
+
+        function applyMergedBookings() {
+          const all = []
+            .concat(Object.values(rawBookingsSourceA || {}))
+            .concat(Object.values(rawBookingsSourceB || {}));
+          applyBookingsList(all);
+        }
+
+        function applyMergedHolds() {
+          const merged = {};
+          const mergeSource = (src) => {
+            if (!src || typeof src !== "object") return;
+            for (const key of Object.keys(src)) {
+              const group = src[key];
+              if (!group || typeof group !== "object") continue;
+              if (!merged[key]) merged[key] = {};
+              for (const seatId of Object.keys(group)) {
+                merged[key][seatId] = group[seatId];
+              }
+            }
+          };
+          mergeSource(rawHoldsSourceA);
+          mergeSource(rawHoldsSourceB);
+          applyHoldsMap(merged);
+        }
+
         function applyBookingsList(records) {
           const nextMap = {};
+          const seenTickets = new Set();
+
           for (const rec of records) {
             if (!rec || !Array.isArray(rec.seats)) continue;
+            if (!isRecordFromToday(rec)) continue; // 24-hour daily refresh filter
+
+            const dedupeKey = rec.ticketId ? String(rec.ticketId) : null;
+            if (dedupeKey) {
+              if (seenTickets.has(dedupeKey)) continue;
+              seenTickets.add(dedupeKey);
+            }
+
             const mId = rec.movieId || activeMovieId;
-            const sTime = rec.time || activeShowtime;
+            const sTime = rec.time || rec.showtime || activeShowtime;
             const key = showKey(mId, sTime);
             if (!nextMap[key]) nextMap[key] = new Set();
             for (const seat of rec.seats) {
@@ -2148,6 +2292,7 @@
 
         function applyHoldsMap(rawHolds) {
           const now = Date.now();
+          const today = getTodayDateKey();
           const cleaned = {};
           if (rawHolds && typeof rawHolds === "object") {
             for (const key of Object.keys(rawHolds)) {
@@ -2155,7 +2300,8 @@
               if (!group || typeof group !== "object") continue;
               for (const seatId of Object.keys(group)) {
                 const hold = group[seatId];
-                if (hold && hold.expiresAt > now) {
+                const holdOkToday = !hold?.dateKey || hold.dateKey === today;
+                if (hold && hold.expiresAt > now && holdOkToday) {
                   if (!cleaned[key]) cleaned[key] = {};
                   cleaned[key][seatId] = hold;
                 }
@@ -2190,7 +2336,7 @@
         }
 
         function startRealtimeListeners() {
-          // Render fallback movie and 190-seat matrix immediately so UI never stalls while RTDB connects
+          // Render fallback movie and 192-seat matrix immediately so UI never stalls while RTDB connects
           renderMovies();
           renderSeatMatrix();
           updateStickyBar();
@@ -2198,50 +2344,61 @@
           if (firebaseReady && db) {
             catalogSyncNote.textContent = "Live Synced";
 
+            // Listen to both 'movies' (admin repo primary) & 'active_movies' without refresh
+            db.ref("movies").on(
+              "value",
+              (snapshot) => {
+                rawMoviesSourceA = snapshot.val() || {};
+                applyMergedMovies();
+              },
+              (err) => {
+                console.warn("Firebase movies read error:", err);
+              }
+            );
+
             db.ref("active_movies").on(
               "value",
               (snapshot) => {
-                const parsed = sanitizeMoviesSnapshot(snapshot.val());
-                movies = parsed.length ? parsed : FALLBACK_DEFAULT_MOVIES.slice();
-                if (!movies.some((m) => m.id === activeMovieId)) {
-                  activeMovieId = movies[0].id;
-                  activeShowtime = movies[0].showtimes[0];
-                  selectedSeats = [];
-                } else {
-                  const cur = getActiveMovie();
-                  if (!cur.showtimes.includes(activeShowtime)) {
-                    activeShowtime = cur.showtimes[0];
-                    selectedSeats = [];
-                  }
-                }
-                renderMovies();
-                renderSeatMatrix();
-                updateStickyBar();
+                rawMoviesSourceB = snapshot.val() || {};
+                applyMergedMovies();
               },
               (err) => {
-                console.warn("Firebase active_movies read error, using default:", err);
-                catalogSyncNote.textContent = "Gole Complex · Live Hall";
-                movies = FALLBACK_DEFAULT_MOVIES.slice();
-                renderMovies();
-                renderSeatMatrix();
-                updateStickyBar();
+                console.warn("Firebase active_movies read error:", err);
+              }
+            );
+
+            // Listen to both 'bookings' & 'ticket_bookings' in real time
+            db.ref("bookings").on(
+              "value",
+              (snapshot) => {
+                rawBookingsSourceA = snapshot.val() || {};
+                applyMergedBookings();
+              },
+              (err) => {
+                console.warn("Firebase bookings read error:", err);
               }
             );
 
             db.ref("ticket_bookings").on(
               "value",
               (snapshot) => {
-                const val = snapshot.val() || {};
-                const list = Object.values(val);
-                applyBookingsList(list);
+                rawBookingsSourceB = snapshot.val() || {};
+                applyMergedBookings();
               },
               (err) => {
                 console.warn("Firebase ticket_bookings read error:", err);
               }
             );
 
+            // Listen to real-time seat reservations ('seat_holds' & 'reserved_seats')
             db.ref("seat_holds").on("value", (snapshot) => {
-              applyHoldsMap(snapshot.val() || {});
+              rawHoldsSourceA = snapshot.val() || {};
+              applyMergedHolds();
+            });
+
+            db.ref("reserved_seats").on("value", (snapshot) => {
+              rawHoldsSourceB = snapshot.val() || {};
+              applyMergedHolds();
             });
           } else {
             catalogSyncNote.textContent = "Gole Complex · Live Hall";
@@ -2258,13 +2415,14 @@
           inCheckoutHoldActive = active;
           const key = showKey(activeMovieId, activeShowtime);
           const expiresAt = Date.now() + 5 * 60 * 1000;
+          const dateKey = getTodayDateKey();
 
           if (firebaseReady && db) {
             const ref = db.ref(`seat_holds/${key}`);
             if (active) {
               const updates = {};
               for (const s of selectedSeats) {
-                updates[s] = { clientId: CLIENT_SESSION_ID, expiresAt };
+                updates[s] = { clientId: CLIENT_SESSION_ID, expiresAt, dateKey };
               }
               ref.update(updates).catch(() => {});
             } else {
@@ -2414,7 +2572,7 @@
           const holdMap = holdsByShow[key] || {};
 
           activeMovieHeading.textContent = movie.title;
-          activeShowSub.textContent = `${activeShowtime} · ${formatNpr(unitPrice)} per seat · 190 Seats`;
+          activeShowSub.textContent = `${activeShowtime} · ${formatNpr(unitPrice)} per seat · ${TOTAL_SEATS} Seats`;
 
           let unavailableCount = 0;
           seatGridEl.innerHTML = "";
@@ -2429,7 +2587,7 @@
             rowEl.appendChild(leftLabel);
 
             for (let num = 1; num <= SEATS_PER_ROW; num++) {
-              if (num === 11) {
+              if (num === 9) {
                 const aisle = document.createElement("span");
                 aisle.className = "aisle-gap";
                 aisle.setAttribute("aria-hidden", "true");
@@ -2484,8 +2642,8 @@
             seatGridEl.appendChild(rowEl);
           });
 
-          const freeCount = Math.max(0, 190 - unavailableCount);
-          availableCounter.textContent = `${freeCount} / 190 Free`;
+          const freeCount = Math.max(0, TOTAL_SEATS - unavailableCount);
+          availableCounter.textContent = `${freeCount} / ${TOTAL_SEATS} Free`;
           clearSeatsBtn.style.display = selectedSeats.length ? "inline-flex" : "none";
         }
 
@@ -2609,6 +2767,9 @@
             Date.now().toString(36).toUpperCase().slice(-4) +
             Math.random().toString(36).substring(2, 5).toUpperCase();
 
+          const dateKey = getTodayDateKey();
+          const paymentType = paymentMethod === "FONEPAY" ? "online" : "cash";
+
           const bookingRecord = {
             ticketId,
             movieId: movie.id,
@@ -2616,27 +2777,66 @@
             seats: seatsCopy,
             seatCount,
             unitPrice,
+            amount: totalAmount,
             totalAmount,
             customerPhone: rawPhone,
+            payment: paymentType,
             paymentMethod,
             time: activeShowtime,
+            showtime: activeShowtime,
+            dateKey,
             timestamp: Date.now(),
+          };
+
+          const firebasePayload = {
+            ticketId: bookingRecord.ticketId,
+            movieId: bookingRecord.movieId,
+            movieTitle: bookingRecord.movieTitle,
+            seats: bookingRecord.seats,
+            seatCount: bookingRecord.seatCount,
+            amount: bookingRecord.amount,
+            totalAmount: bookingRecord.totalAmount,
+            customerPhone: bookingRecord.customerPhone,
+            payment: bookingRecord.payment,
+            paymentMethod: bookingRecord.paymentMethod,
+            time: bookingRecord.time,
+            showtime: bookingRecord.showtime,
+            dateKey: bookingRecord.dateKey,
+            timestamp: bookingRecord.timestamp,
+          };
+
+          const adminNotification = {
+            type: paymentType === "online" ? "ONLINE_BOOKING_PAID" : "CASH_BOOKING",
+            ticketId: bookingRecord.ticketId,
+            movieId: bookingRecord.movieId,
+            movieTitle: bookingRecord.movieTitle,
+            showtime: bookingRecord.showtime,
+            seats: bookingRecord.seats,
+            seatCount: bookingRecord.seatCount,
+            payment: bookingRecord.payment,
+            paymentMethod: bookingRecord.paymentMethod,
+            amount: bookingRecord.amount,
+            totalAmount: bookingRecord.totalAmount,
+            customerPhone: bookingRecord.customerPhone,
+            dateKey: bookingRecord.dateKey,
+            read: false,
+            timestamp: bookingRecord.timestamp,
+            message: `${
+              paymentType === "online" ? "Online (Fonepay) Paid" : "Cash Booking"
+            }: ${bookingRecord.seatCount} seat(s) [${bookingRecord.seats.join(
+              ", "
+            )}] for ${bookingRecord.movieTitle} (${bookingRecord.showtime}) — Rs. ${
+              bookingRecord.totalAmount
+            } · Phone: ${bookingRecord.customerPhone}`,
           };
 
           try {
             if (firebaseReady && db) {
-              const pushPromise = db.ref("ticket_bookings").push({
-                ticketId: bookingRecord.ticketId,
-                movieId: bookingRecord.movieId,
-                movieTitle: bookingRecord.movieTitle,
-                seats: bookingRecord.seats,
-                seatCount: bookingRecord.seatCount,
-                totalAmount: bookingRecord.totalAmount,
-                customerPhone: bookingRecord.customerPhone,
-                paymentMethod: bookingRecord.paymentMethod,
-                time: bookingRecord.time,
-                timestamp: bookingRecord.timestamp,
-              });
+              const writeAllPromise = Promise.all([
+                db.ref("bookings").push(firebasePayload),
+                db.ref("ticket_bookings").push(firebasePayload),
+                db.ref("notifications").push(adminNotification),
+              ]);
               const timeoutPromise = new Promise((_, reject) =>
                 setTimeout(
                   () =>
@@ -2648,7 +2848,7 @@
                   6000
                 )
               );
-              await Promise.race([pushPromise, timeoutPromise]);
+              await Promise.race([writeAllPromise, timeoutPromise]);
               if (analytics && typeof analytics.logEvent === "function") {
                 try {
                   analytics.logEvent("ticket_booked", {
@@ -2656,7 +2856,7 @@
                     seat_count: bookingRecord.seatCount,
                     value: bookingRecord.totalAmount,
                     currency: "NPR",
-                    payment_type: bookingRecord.paymentMethod,
+                    payment_type: bookingRecord.payment,
                   });
                 } catch {}
               }
