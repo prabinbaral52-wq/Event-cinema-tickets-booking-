@@ -1,4 +1,4 @@
-import { collection, onSnapshot, addDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { ref, onValue, push, set } from 'firebase/database';
 import { db } from './firebase';
 
 export interface LiveMovie {
@@ -9,9 +9,11 @@ export interface LiveMovie {
 }
 
 export function listenMovies(callback: (movies: LiveMovie[]) => void) {
-  const q = query(collection(db, 'movies'), orderBy('createdAt', 'desc'));
-  return onSnapshot(q, (snap) => {
-    const movies = snap.docs.map(d => ({ id: d.id, ...d.data() } as LiveMovie));
+  const moviesRef = ref(db, 'movies');
+  return onValue(moviesRef, (snap) => {
+    const data = snap.val() || {};
+    const movies = Object.entries(data).map(([id, val]: any) => ({ id, ...val }));
+    movies.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
     callback(movies);
   });
 }
@@ -22,9 +24,11 @@ export async function createBooking(data: {
   payment: 'online' | 'cash';
   amount: number;
 }) {
-  return addDoc(collection(db, 'bookings'), {
+  const bookingsRef = ref(db, 'bookings');
+  const newRef = push(bookingsRef);
+  await set(newRef, {
     ...data,
-    timestamp: Date.now(),
-    createdAt: serverTimestamp()
+    timestamp: Date.now()
   });
+  return newRef.key;
 }
