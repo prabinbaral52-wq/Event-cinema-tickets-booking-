@@ -1,9 +1,10 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getDatabase } from 'firebase/database';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAMY63jHY8YfWidX_fwJHbu_j0NgpRwoCE",
   authDomain: "event-cinema-ticket.firebaseapp.com",
+  databaseURL: "https://event-cinema-ticket-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "event-cinema-ticket",
   storageBucket: "event-cinema-ticket.firebasestorage.app",
   messagingSenderId: "79304425831",
@@ -12,5 +13,5 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+export const db = getDatabase(app);
 export default app;
